@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Spinner } from './Loaders'
 
 export default function MatchChat({ matchId, utente, onBack }){
   const base = import.meta.env.VITE_BACKEND_URL
@@ -45,7 +46,7 @@ export default function MatchChat({ matchId, utente, onBack }){
     <div className="max-w-2xl mx-auto p-6">
       <button onClick={onBack} className="text-sm text-gray-500 mb-4">Indietro</button>
       <div className="bg-white border rounded-xl p-4">
-        {loading && <p>Caricamento...</p>}
+        {loading && <Spinner />}
         {match && (
           <div className="mb-3 text-sm text-gray-700">
             <div className="font-medium">Chat match</div>
@@ -63,7 +64,7 @@ export default function MatchChat({ matchId, utente, onBack }){
         </div>
         <form onSubmit={send} className="mt-3 flex gap-2">
           <input value={text} onChange={e=>setText(e.target.value)} className="flex-1 border rounded p-2" placeholder="Scrivi un messaggio" />
-          <button disabled={sending} className="px-3 py-2 bg-emerald-600 text-white rounded">Invia</button>
+          <button disabled={sending} className="px-3 py-2 bg-emerald-600 text-white rounded">{sending ? 'Invio...' : 'Invia'}</button>
         </form>
       </div>
     </div>

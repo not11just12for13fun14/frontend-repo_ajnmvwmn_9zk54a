@@ -5,6 +5,8 @@ import Richieste from './components/Richieste'
 import CreaRichiesta from './components/CreaRichiesta'
 import DettaglioRichiesta from './components/DettaglioRichiesta'
 import MatchChat from './components/MatchChat'
+import { Spinner } from './components/Loaders'
+import { useToasts } from './components/ToastProvider'
 
 function Navbar({ utente, onLogout, onProfilo, onHome }){
   return (
@@ -28,6 +30,7 @@ function Profilo({ utente, onAggiorna, onBack }){
   const [loading, setLoading] = useState(false)
   const [photo, setPhoto] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const { show } = useToasts()
 
   const salva = async () => {
     setLoading(true)
@@ -38,6 +41,7 @@ function Profilo({ utente, onAggiorna, onBack }){
     const data = await res.json()
     onAggiorna(data)
     setLoading(false)
+    show('Profilo aggiornato')
   }
 
   const upload = async () => {
@@ -49,8 +53,9 @@ function Profilo({ utente, onAggiorna, onBack }){
     if(res.ok){
       const data = await res.json()
       onAggiorna(data)
+      show('Foto profilo aggiornata')
     } else {
-      alert('Upload non riuscito')
+      show('Upload non riuscito')
     }
     setUploading(false)
   }
@@ -79,7 +84,7 @@ function Profilo({ utente, onAggiorna, onBack }){
           </select>
           <p className="text-xs text-gray-500 mt-1">1 principianti • 3 intermedio • 5 avanzato</p>
         </div>
-        <button disabled={loading} onClick={salva} className="bg-emerald-600 text-white py-2 rounded">{loading?'Salvataggio...':'Salva modifiche'}</button>
+        <button disabled={loading} onClick={salva} className="bg-emerald-600 text-white py-2 rounded">{loading? <Spinner label="Salvataggio..."/> :'Salva modifiche'}</button>
       </div>
     </div>
   )
@@ -87,32 +92,39 @@ function Profilo({ utente, onAggiorna, onBack }){
 
 function LeMie({ utente, onBack, onDettagli, onApriChat }){
   const [dati, setDati] = useState({ aperte: [], match_confermati: [] })
+  const [loading, setLoading] = useState(true)
   const load = async () => {
+    setLoading(true)
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/miei/${utente.id}`)
     const data = await res.json()
     setDati(data)
+    setLoading(false)
   }
   useEffect(()=>{ load() }, [])
   return (
     <div className="max-w-4xl mx-auto p-6">
       <button onClick={onBack} className="text-sm text-gray-500 mb-4">Indietro</button>
       <h2 className="text-2xl font-semibold mb-4">Le mie richieste</h2>
-      <div className="grid gap-2">
-        <h3 className="font-medium">Aperte</h3>
-        {dati.aperte.map(r=> <div key={r.id} className="border rounded p-3 bg-white flex justify-between items-center">
-          <div>{r.data} {r.orario_inizio}-{r.orario_fine} • Campo {r.numero_campo} • {r.luogo}</div>
-          <button className="text-sm text-emerald-700" onClick={()=>onDettagli(r.id)}>Dettagli</button>
-        </div>)}
-        {dati.aperte.length===0 && <p className="text-sm text-gray-600">Nessuna richiesta aperta.</p>}
-      </div>
-      <div className="grid gap-2 mt-6">
-        <h3 className="font-medium">Match confermati</h3>
-        {dati.match_confermati.map(m=> <div key={m.id} className="border rounded p-3 bg-white flex justify-between items-center">
-          <div>{m.data} {m.orario_inizio}-{m.orario_fine} • Campo {m.numero_campo} • {m.luogo}</div>
-          <button className="text-sm" onClick={()=>onApriChat(m.id)}>Apri chat</button>
-        </div>)}
-        {dati.match_confermati.length===0 && <p className="text-sm text-gray-600">Nessun match confermato.</p>}
-      </div>
+      {loading ? <Spinner /> : (
+        <>
+          <div className="grid gap-2">
+            <h3 className="font-medium">Aperte</h3>
+            {dati.aperte.map(r=> <div key={r.id} className="border rounded p-3 bg-white flex justify-between items-center">
+              <div>{r.data} {r.orario_inizio}-{r.orario_fine} • Campo {r.numero_campo} • {r.luogo}</div>
+              <button className="text-sm text-emerald-700" onClick={()=>onDettagli(r.id)}>Dettagli</button>
+            </div>)}
+            {dati.aperte.length===0 && <p className="text-sm text-gray-600">Nessuna richiesta aperta.</p>}
+          </div>
+          <div className="grid gap-2 mt-6">
+            <h3 className="font-medium">Match confermati</h3>
+            {dati.match_confermati.map(m=> <div key={m.id} className="border rounded p-3 bg-white flex justify-between items-center">
+              <div>{m.data} {m.orario_inizio}-{m.orario_fine} • Campo {m.numero_campo} • {m.luogo}</div>
+              <button className="text-sm" onClick={()=>onApriChat(m.id)}>Apri chat</button>
+            </div>)}
+            {dati.match_confermati.length===0 && <p className="text-sm text-gray-600">Nessun match confermato.</p>}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -122,6 +134,7 @@ export default function App(){
   const [utente, setUtente] = useState(null)
   const [richiestaId, setRichiestaId] = useState(null)
   const [matchId, setMatchId] = useState(null)
+  const { show } = useToasts()
   const goHome = () => setScreen('home')
 
   useEffect(()=>{
@@ -132,15 +145,15 @@ export default function App(){
 
   if(!utente){
     if(screen === 'onboarding') return <Hero onStart={(s)=>setScreen(s)} />
-    if(screen === 'login') return <Login onBack={()=>setScreen('onboarding')} onSuccess={(u)=>{ setUtente(u); setScreen('home') }} />
-    if(screen === 'register') return <Register onBack={()=>setScreen('onboarding')} onSuccess={(u)=>{ setUtente(u); setScreen('home') }} />
+    if(screen === 'login') return <Login onBack={()=>setScreen('onboarding')} onSuccess={(u)=>{ setUtente(u); setScreen('home'); show('Bentornato!') }} />
+    if(screen === 'register') return <Register onBack={()=>setScreen('onboarding')} onSuccess={(u)=>{ setUtente(u); setScreen('home'); show('Registrazione completata') }} />
   }
 
   if(!utente) return null
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar utente={utente} onLogout={()=>{ setUtente(null); setScreen('onboarding') }} onProfilo={()=>setScreen('profilo')} onHome={goHome} />
+      <Navbar utente={utente} onLogout={()=>{ setUtente(null); setScreen('onboarding'); show('Sei uscito') }} onProfilo={()=>setScreen('profilo')} onHome={goHome} />
       {screen === 'home' && <Richieste utente={utente} onCrea={()=>setScreen('crea')} />}
       {screen === 'crea' && <CreaRichiesta utente={utente} onBack={goHome} />}
       {screen === 'profilo' && <Profilo utente={utente} onAggiorna={(u)=>{ setUtente(u); goHome() }} onBack={goHome} />}
