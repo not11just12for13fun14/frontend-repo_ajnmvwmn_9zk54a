@@ -3,17 +3,20 @@ import Hero from './components/Hero'
 import { Login, Register } from './components/AuthForms'
 import Richieste from './components/Richieste'
 import CreaRichiesta from './components/CreaRichiesta'
+import DettaglioRichiesta from './components/DettaglioRichiesta'
 
 function Navbar({ utente, onLogout, onProfilo, onHome }){
   return (
     <div className="w-full bg-white border-b">
       <div className="max-w-5xl mx-auto flex items-center justify-between p-4">
         <button onClick={onHome} className="font-bold text-emerald-700">MatchTennis</button>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-700">{utente.nome} {utente.cognome} • Livello {utente.livello_di_gioco}</span>
-          <button onClick={onProfilo} className="text-sm border rounded px-2 py-1">Profilo</button>
-          <button onClick={onLogout} className="text-sm bg-gray-800 text-white rounded px-2 py-1">Logout</button>
-        </div>
+        {utente && (
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-700">{utente.nome} {utente.cognome} • Livello {utente.livello_di_gioco}</span>
+            <button onClick={onProfilo} className="text-sm border rounded px-2 py-1">Profilo</button>
+            <button onClick={onLogout} className="text-sm bg-gray-800 text-white rounded px-2 py-1">Logout</button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -55,7 +58,7 @@ function Profilo({ utente, onAggiorna, onBack }){
   )
 }
 
-function LeMie({ utente, onBack }){
+function LeMie({ utente, onBack, onDettagli }){
   const [dati, setDati] = useState({ aperte: [], match_confermati: [] })
   const load = async () => {
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/miei/${utente.id}`)
@@ -69,7 +72,10 @@ function LeMie({ utente, onBack }){
       <h2 className="text-2xl font-semibold mb-4">Le mie richieste</h2>
       <div className="grid gap-2">
         <h3 className="font-medium">Aperte</h3>
-        {dati.aperte.map(r=> <div key={r.id} className="border rounded p-3 bg-white">{r.data} {r.orario_inizio}-{r.orario_fine} • Campo {r.numero_campo} • {r.luogo}</div>)}
+        {dati.aperte.map(r=> <div key={r.id} className="border rounded p-3 bg-white flex justify-between items-center">
+          <div>{r.data} {r.orario_inizio}-{r.orario_fine} • Campo {r.numero_campo} • {r.luogo}</div>
+          <button className="text-sm text-emerald-700" onClick={()=>onDettagli(r.id)}>Dettagli</button>
+        </div>)}
         {dati.aperte.length===0 && <p className="text-sm text-gray-600">Nessuna richiesta aperta.</p>}
       </div>
       <div className="grid gap-2 mt-6">
@@ -84,6 +90,7 @@ function LeMie({ utente, onBack }){
 export default function App(){
   const [screen, setScreen] = useState('onboarding')
   const [utente, setUtente] = useState(null)
+  const [richiestaId, setRichiestaId] = useState(null)
   const goHome = () => setScreen('home')
 
   useEffect(()=>{
@@ -106,7 +113,8 @@ export default function App(){
       {screen === 'home' && <Richieste utente={utente} onCrea={()=>setScreen('crea')} />}
       {screen === 'crea' && <CreaRichiesta utente={utente} onBack={goHome} />}
       {screen === 'profilo' && <Profilo utente={utente} onAggiorna={(u)=>{ setUtente(u); goHome() }} onBack={goHome} />}
-      {screen === 'mie' && <LeMie utente={utente} onBack={goHome} />}
+      {screen === 'mie' && <LeMie utente={utente} onBack={goHome} onDettagli={(id)=>{ setRichiestaId(id); setScreen('dettaglio') }} />}
+      {screen === 'dettaglio' && <DettaglioRichiesta richiestaId={richiestaId} utente={utente} onBack={goHome} onAggiorna={()=>{}} />}
       <div className="fixed bottom-4 right-4 flex flex-col gap-2">
         <button onClick={()=>setScreen('mie')} className="px-3 py-2 bg-white border rounded shadow">Le mie richieste</button>
       </div>
