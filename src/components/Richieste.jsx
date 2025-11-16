@@ -13,7 +13,7 @@ function CardRichiesta({ r, onDettagli, onAccetta }){
   return (
     <div className="border rounded-lg p-4 flex flex-col gap-2 bg-white">
       <div className="flex justify-between">
-        <div className="font-medium">Livello richiesto: {r.livello_richiesto}</div>
+        <div className="font-medium">{r.creatore_nome ? `${r.creatore_nome} • ` : ''}Livello richiesto: {r.livello_richiesto}</div>
         <div className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">{r.stato}</div>
       </div>
       <div className="text-sm text-gray-700">Data: {r.data} • {r.orario_inizio} - {r.orario_fine}</div>
@@ -31,6 +31,8 @@ export default function Richieste({ utente, onCrea }){
   const [lista, setLista] = useState([])
   const [loading, setLoading] = useState(true)
   const base = import.meta.env.VITE_BACKEND_URL
+  const [qClub, setQClub] = useState('')
+  const [suggerimenti, setSuggerimenti] = useState([])
 
   const fetchList = async () => {
     setLoading(true)
@@ -43,6 +45,11 @@ export default function Richieste({ utente, onCrea }){
     const data = await res.json()
     setLista(data)
     setLoading(false)
+  }
+
+  const fetchClub = async (q) => {
+    const res = await fetch(`${base}/api/club?q=${encodeURIComponent(q)}`)
+    if(res.ok){ setSuggerimenti(await res.json()) }
   }
 
   useEffect(()=>{ fetchList() }, [])
@@ -82,9 +89,23 @@ export default function Richieste({ utente, onCrea }){
         <Filtro label="Campo">
           <input type="number" min={1} value={f.numero_campo} onChange={e=>setF({...f, numero_campo:e.target.value})} className="border rounded p-2" />
         </Filtro>
-        <div className="sm:col-span-4 flex gap-2">
+        <div className="sm:col-span-4 flex gap-2 items-end">
+          <div className="flex-1">
+            <div className="text-xs text-gray-600 mb-1">Cerca club</div>
+            <input value={qClub} onChange={e=>{ setQClub(e.target.value); fetchClub(e.target.value) }} placeholder="Es. Milano, Quanta..." className="w-full border rounded p-2" />
+            {qClub && suggerimenti.length>0 && (
+              <div className="bg-white border rounded mt-1 max-h-40 overflow-y-auto">
+                {suggerimenti.map((c,i)=> (
+                  <div key={i} className="px-3 py-2 hover:bg-emerald-50 cursor-pointer" onClick={()=>{ setQClub(c.nome); }}>
+                    <div className="font-medium">{c.nome}</div>
+                    <div className="text-xs text-gray-600">{c.citta} • {c.lat.toFixed(3)}, {c.lon.toFixed(3)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <button onClick={fetchList} className="px-3 py-2 bg-gray-800 text-white rounded">Applica filtri</button>
-          <button onClick={()=>{setF({ livello_richiesto:'', data:'', orario:'', numero_campo:'' }); fetchList()}} className="px-3 py-2 border rounded">Reset</button>
+          <button onClick={()=>{setF({ livello_richiesto:'', data:'', orario:'', numero_campo:'' }); setQClub(''); setSuggerimenti([]); fetchList()}} className="px-3 py-2 border rounded">Reset</button>
         </div>
       </div>
       {loading ? <p>Caricamento...</p> : (
